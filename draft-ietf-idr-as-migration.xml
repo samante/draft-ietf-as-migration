@@ -1,0 +1,869 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- This template is for creating an Internet Draft using xml2rfc,
+     which is available here: http://xml.resource.org. -->
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd" [
+<!-- One method to get references from the online citation libraries.
+     There has to be one entity for each item to be referenced. 
+     An alternate method (rfc include) is described in the references. -->
+<!ENTITY RFC2119 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml">
+<!ENTITY RFC4271 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.4271.xml">
+<!ENTITY RFC4456 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.4456.xml">
+<!ENTITY RFC5065 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5065.xml">
+<!ENTITY RFC5082 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5082.xml">
+<!ENTITY RFC5398 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5398.xml">
+<!ENTITY RFC5925 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.5925.xml">
+<!ENTITY RFC6996 SYSTEM "http://xml.resource.org/public/rfc/bibxml/reference.RFC.6996.xml">
+]>
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+<!-- used by XSLT processors -->
+<!-- For a complete list and description of processing instructions (PIs), 
+     please see http://xml.resource.org/authoring/README.html. -->
+<!-- Below are generally applicable Processing Instructions (PIs) that most I-Ds might want to use.
+     (Here they are set differently than their defaults in xml2rfc v1.32) -->
+<?rfc strict="yes" ?>
+<!-- give errors regarding ID-nits and DTD validation -->
+<!-- control the table of contents (ToC) -->
+<?rfc toc="yes"?>
+<!-- generate a ToC -->
+<?rfc tocdepth="4"?>
+<!-- the number of levels of subsections in ToC. default: 3 -->
+<!-- control references -->
+<?rfc symrefs="yes"?>
+<!-- use symbolic references tags, i.e, [RFC2119] instead of [1] -->
+<?rfc sortrefs="yes" ?>
+<!-- sort the reference entries alphabetically -->
+<!-- control vertical white space 
+     (using these PIs as follows is recommended by the RFC Editor) -->
+<?rfc compact="yes" ?>
+<!-- do not start each main section on a new page -->
+<?rfc subcompact="no" ?>
+<!-- keep one blank line between list items -->
+<!-- end of list of popular I-D processing instructions -->
+<rfc category="std" docName="draft-ietf-idr-as-migration-04" ipr="trust200902">
+  <!-- category values: std, bcp, info, exp, and historic
+     ipr values: full3667, noModification3667, noDerivatives3667
+     you can add the attributes updates="NNNN" and obsoletes="NNNN" 
+     they will automatically be output with "(if approved)" -->
+
+  <!-- ***** FRONT MATTER ***** -->
+
+  <front>
+    <!-- The abbreviated title is used in the page header - it is only necessary if the 
+         full title is longer than 39 characters -->
+
+    <title abbrev="AS Migration Features">Autonomous System Migration Features
+    and Their Effects on the BGP AS_PATH Attribute</title>
+
+    <!-- add 'role="editor"' below for the editors if appropriate -->
+
+    <!-- Another author who claims to be an editor -->
+
+    <author fullname="Wesley George" initials="W" surname="George">
+      <organization>Time Warner Cable</organization>
+
+      <address>
+        <postal>
+          <street>13820 Sunrise Valley Drive</street>
+
+          <!-- Reorder these if your country does things differently -->
+
+          <city>Herndon</city>
+
+          <region>VA</region>
+
+          <code>20171</code>
+
+          <country>US</country>
+        </postal>
+
+        <phone>+1 703-561-2540</phone>
+
+        <email>wesley.george@twcable.com</email>
+
+        <!-- uri and facsimile elements may also be added -->
+      </address>
+    </author>
+
+    <author fullname="Shane Amante" initials="S" surname="Amante">
+      <organization>Apple, Inc.</organization>
+
+      <address>
+        <postal>
+          <street>1 Infinite Loop</street>
+
+          <!-- Reorder these if your country does things differently -->
+
+          <city>Cupertino</city>
+
+          <region>CA</region>
+
+          <code>95014</code>
+
+          <country>US</country>
+        </postal>
+
+        <phone/>
+
+        <email>samante@apple.com</email>
+
+        <!-- uri and facsimile elements may also be added -->
+      </address>
+    </author>
+
+    <date year="2015"/>
+
+    <!-- If the month and year are both specified and are the current ones, xml2rfc will fill 
+         in the current day for you. If only the current year is specified, xml2rfc will fill 
+	 in the current day and month for you. If the year is not the current one, it is 
+	 necessary to specify at least a month (xml2rfc assumes day="1" if not specified for the 
+	 purpose of calculating the expiry date).  With drafts it is normally sufficient to 
+	 specify just the year. -->
+
+    <!-- Meta-data Declarations -->
+
+    <area>Routing</area>
+
+    <workgroup>Internet Engineering Task Force</workgroup>
+
+    <!-- WG name at the upperleft corner of the doc,
+         IETF is fine for individual submissions.  
+	 If this element is not present, the default is "Network Working Group",
+         which is used by the RFC Editor as a nod to the history of the IETF. -->
+
+    <keyword>as-migration, AS-migration, AS_migration, AS migration, IDR,
+    BGP</keyword>
+
+    <!-- Keywords will be incorporated into HTML output
+         files in a meta tag but they have no effect on text or nroff
+         output. If you submit your draft to the RFC Editor, the
+         keywords will be used for the search engine. -->
+
+    <abstract>
+      <t>This draft discusses some commonly-used BGP features for ASN
+      migration that are not formally part of the BGP4 protocol specification
+      and may be vendor-specific in exact implementation. It is necessary to
+      document these de facto standards to ensure that they are properly
+      supported in future BGP protocol work such as BGPSec.</t>
+    </abstract>
+  </front>
+
+  <middle>
+    <section title="Introduction">
+      <t>This draft discusses some commonly-used BGP features for ASN
+      migration that are not formally part of the <xref
+      target="RFC4271">BGP4</xref> protocol specification and may be
+      vendor-specific in exact implementation. These features are local to a
+      given BGP Speaker and do not require negotiation with or cooperation of
+      BGP neighbors. The deployment of these features do not need to interwork
+      with one another to accomplish the desired results, so slight variations
+      between existing vendor implementations exist, and will not necessarily
+      be harmonized due to this document. However, it is necessary to document
+      these de facto standards to ensure that new implementations can be
+      successful, and any future protocol enhancements to BGP that propose to
+      read, copy, manipulate or compare the AS_PATH attribute can do so
+      without inhibiting the use of these very widely used ASN migration
+      features.</t>
+
+      <t>The migration features discussed here are useful to ISPs and
+      organizations of all sizes, but it is important to understand the
+      business need for these features and illustrate why they are so critical
+      for ISPs' operations. During a merger, acquisition or divestiture
+      involving two organizations it is necessary to seamlessly migrate both
+      internal and external BGP speakers from one ASN to a second ASN. The
+      overall goal in doing so is to simplify operations through consistent
+      configurations across all BGP speakers in the combined network. In
+      addition, given that the BGP Path Selection algorithm selects routes
+      with the shortest AS_PATH attribute, it is critical that the ISP does
+      not increase AS_PATH length during or after ASN migration, because an
+      increased AS_PATH length would likely result in sudden, undesirable
+      changes in traffic patterns in the network.</t>
+
+      <t>By default, the BGP protocol requires an operator to configure a
+      router to use a single remote ASN for the BGP neighbor, and the ASN must
+      match on both ends of the peering in order to successfully negotiate and
+      establish a BGP session. Prior to the existence of these migration
+      features, it would have required an ISP to coordinate an ASN change
+      with, in some cases, tens of thousands of customers. In particular, as
+      each router is migrated to the new ASN, to avoid an outage due to ASN
+      mismatch, the ISP would have to force all customers on that router to
+      change their router configurations to use the new ASN immediately after
+      the ASN change. Thus, it becomes critical to allow the ISP to make this
+      process a bit more asymmetric, so that it could seamlessly migrate the
+      ASN within its network(s), but allow the customers to gradually migrate
+      to the ISP's new ASN at their leisure, either by coordinating individual
+      reconfigurations, or accepting sessions using either the old or new ASN
+      to allow for truly asymmetric migration.</t>
+
+      <section title="Requirements Language">
+        <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+        "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+        document are to be interpreted as described in <xref
+        target="RFC2119">RFC 2119</xref>.</t>
+      </section>
+
+      <section title="Documentation note">
+        <t>This draft uses Autonomous System Numbers (ASNs) from the range
+        reserved for documentation as described in <xref target="RFC5398">RFC
+        5398</xref>. In the examples used here, they are intended to represent
+        Globally Unique ASNs, not private use ASNs as documented in <xref
+        target="RFC6996">RFC 6996</xref> section 5.</t>
+      </section>
+    </section>
+
+    <section title="ASN Migration Scenario Overview">
+      <t>The use case being discussed here is an ISP merging two or more ASNs,
+      where eventually one ASN subsumes the other(s). In this use case, we
+      will assume the most common case where there are two ISPs, A and B, that
+      prior to the ASN migration use AS 64500 and 64510, respectively. AS
+      64500 will be the permanently retained ASN used across the consolidated
+      set of both ISPs network equipment, and AS 64510 will be retired. Thus,
+      at the conclusion of the ASN migration, there will be a single ISP A'
+      with all internal BGP speakers configured to use AS 64500. To all
+      external BGP speakers, the AS_PATH length will not be increased.</t>
+
+      <t>In this same scenario, AS 64496 and AS 64499 represent two separate
+      customer networks: C and D, respectively. Originally, customer C (AS
+      64496) is attached to ISP B, which will undergo ASN migration from AS
+      64510 to AS 64500. Furthermore, customer D (AS 64499) is attached to ISP
+      A, which does not undergo ASN migration since the ASN for ISP A will
+      remain constant, (AS 64500). Although this example refers to AS 64496
+      and 64499 as customer networks, either or both may be settlement-free or
+      other types of peers. In this use case they are referred to as
+      "customers" merely for convenience.</t>
+
+      <figure align="center" anchor="premigration" title="Before Migration">
+        <artwork align="left"><![CDATA[      ------                  ------
+    / ISP  A \              / ISP  B \
+   | AS 64500 |            | AS 64510 |
+    \        /              \        /
+     -------                 -------
+        |                       |
+        |                       |
+  ------------             ------------- 
+  |  Cust D  |             |  Cust C   |
+  | AS 64499 |             | AS 64496  |
+  ------------             -------------]]></artwork>
+      </figure>
+
+      <figure align="center" anchor="postmigration" title="After Migration">
+        <artwork align="left"><![CDATA[             ---------------
+           /                \
+          |     ISP A'       |
+          |     AS 64500     |
+           \                /
+             ---------------
+          /                  \
+        /                      \
+       |                         |
+  ------------             ------------- 
+  |  Cust D  |             |  Cust C   |
+  | AS 64499 |             | AS 64496  |
+  ------------             -------------]]></artwork>
+      </figure>
+
+      <t>The general order of operations, typically carried out in a single
+      maintenance window by the network undergoing ASN migration (ISP B), are
+      as follows. First, ISP B will change the global BGP ASN used by a
+      Provider Edge (PE) router, from ASN 64510 to 64500. At this point, the
+      router will no longer be able to establish eBGP sessions toward the
+      existing Customer Edge (CE) devices that are attached to it and still
+      using AS 64510. Second, since ISP B needs to do this without
+      coordinating the simultaneous change of its ASN with all of its eBGP
+      peers, ISP B will configure two separate, but related ASN migration
+      features discussed in this document on all eBGP sessions toward all CE
+      devices. These features enable the router to establish BGP neighbors
+      using the legacy ASN, modify the AS_PATH attribute received from a CE
+      device when advertising it further, and modify AS_PATH when transmitted
+      toward CE devices to achieve the desired effect of not increasing the
+      length of the AS_PATH.</t>
+
+      <t>At the conclusion of the ASN migration, the CE devices at the edge of
+      the network are not aware of the fact that their upstream router is now
+      in a new ASN and do not observe any change in the length of the AS_PATH
+      attribute. However, after the changes discussed in this document are put
+      in place by ISP A', there is a change to the contents of the AS_PATH
+      attribute to ensure the AS_PATH is not artificially lengthened while
+      these AS migration parameters are used.</t>
+
+      <t>In this use case, neither ISP is using BGP Confederations <xref
+      target="RFC5065">RFC 5065</xref> internally.</t>
+
+      <t>There are multiple implementations with equivalent features deployed
+      and in use. Some documentation pointers to these implementations, as
+      well as additional documentation on migration scenarios can be found in
+      the appendix. The examples cited below use Cisco IOS CLI for ease of
+      illustration purposes only.</t>
+    </section>
+
+    <section anchor="ebgp-features"
+             title="External BGP Autonomous System Migration Features">
+      <t>The following section addresses features that are specific to
+      modifying the AS_PATH attribute at the Autonomous System Border Routers
+      (ASBRs) of an organization, (typically a single Service Provider). This
+      ensures that external BGP customers/peers are not forced to make any
+      configuration changes on their CE routers before or during the exact
+      time the Service Provider wishes to migrate to a new, permanently
+      retained ASN. Furthermore, these features eliminate the artificial
+      lengthening of the AS_PATH both transmitted from and received by the
+      Service Provider that is undergoing AS Migration, which would have
+      negative implications on path selection by external networks.</t>
+
+      <section title="Modify Inbound BGP AS_PATH Attribute">
+        <t>The first feature used in the process described above is called
+        "Local AS". This feature allows the PE router that was formerly in ISP
+        B to re-establish an eBGP session toward the existing CE devices using
+        the legacy AS, AS 64510. Ultimately, the CE devices (i.e.: customer C)
+        are completely unaware that ISP B has reconfigured its router to
+        participate as a member of a new AS. Within the context of the former
+        ISP B PE router, the second effect this feature has on AS_PATH is
+        that, by default, it prepends all received BGP UPDATEs with the legacy
+        AS of ISP B: AS 64510, while advertising it (Adj-RIB-Out) to other BGP
+        speakers (A'). Within Loc-RIB on ISP B prior to the migration, the
+        AS_PATH toward customer C would appear as: 64510, whereas the same RIB
+        on ISP A' (ISP B routers post-migration) would contain AS_PATH: 64510
+        64496. To avoid changes to the AS_PATH length, a secondary feature "No
+        Prepend" is added to the "Local AS" configuration toward every eBGP
+        neighbor on PE routers migrating from ISP B. The "No Prepend" feature
+        causes those routers to not prepend the legacy AS, AS 64510, when
+        advertising UPDATES received from customer C. This restores the
+        AS_PATH within ISP A' toward customer C so that it is just one ASN in
+        length: 64496.</t>
+
+        <t>In the direction of CE -&gt; PE (inbound):</t>
+
+        <t><list style="numbers">
+            <t>'local-as &lt;old_ASN&gt;': prepends the &lt;old_ASN&gt; value
+            to the AS_PATH when advertising routes received from the CE</t>
+
+            <t>'local-as &lt;old_ASN&gt; no-prepend': does not prepend
+            &lt;old_ASN&gt; value to the AS_PATH when advertising routes
+            received from the CE</t>
+          </list></t>
+
+        <t>PE-B is a PE that was originally in ISP B, and has a customer peer
+        CE-B. PE-B has had its global configuration ASN changed from AS 64510
+        to AS 64500 to make it part of the permanently retained ASN. This now
+        makes PE-B a member of ISP A'. PE-A is a PE that was originally in ISP
+        A, and has a customer peer CE-A. Although its global configuration ASN
+        remains AS 64500, throughout this exercise we also consider PE-A a
+        member of ISP A'.</t>
+
+        <figure align="center" anchor="local_as"
+                title="Local AS BGP UPDATE Diagram">
+          <artwork align="center"><![CDATA[           ISP A'                    ISP A'
+     CE-A <--- PE-A <------------------- PE-B <--- CE-B
+     64499     New_ASN: 64500   Old_ASN: 64510     64496
+                                New_ASN: 64500]]></artwork>
+
+          <postamble>Note: Direction of BGP UPDATE as per the
+          arrows.</postamble>
+        </figure>
+
+        <t/>
+
+        <t>The final configuration on PE-B after completing the "Local AS"
+        portion of the AS migration is as follows:</t>
+
+        <figure align="left">
+          <artwork align="left"><![CDATA[router bgp 64500
+     neighbor <CE-B_IP> remote-as 64496
+     neighbor <CE-B_IP> local-as 64510 no-prepend
+]]></artwork>
+        </figure>
+
+        <t>As a result of the "Local AS No Prepend" configuration, on PE-B,
+        CE-A will see an AS_PATH of: 64500 64496. CE-A will not receive a BGP
+        UPDATE containing AS 64510 in the AS_PATH. (If only the "local-as
+        64510" feature was configured without the keyword "no-prepend" on
+        PE-B, then CE-A would see an AS_PATH of: 64496 64510 64500, which
+        results in an unacceptable lengthening of the AS_PATH).</t>
+      </section>
+
+      <section title="Modify Outbound BGP AS_PATH Attribute">
+        <t>The previous feature, "Local AS No Prepend", was designed to modify
+        the AS_PATH Attribute received by the ISP in UPDATEs from CE devices,
+        when CE devices still have an eBGP session established with the ISPs
+        legacy AS, (AS64510). In some existing implementations, "Local AS No
+        Prepend" does not concurrently modify the AS_PATH Attribute for BGP
+        UPDATEs that are transmitted by the ISP to CE devices. Specifically,
+        with "Local AS No Prepend" enabled on PE-B, it automatically causes a
+        lengthening of the AS_PATH in outbound BGP UPDATEs from ISP A' toward
+        directly attached eBGP speakers, (Customer C in AS 64496). This is the
+        result of the "Local AS No Prepend" feature automatically appending
+        the new global configuration ASN, AS64500, after the legacy ASN,
+        AS64510, in BGP UPDATEs that are transmitted by PE-B to CE-B. The end
+        result is that customer C, in AS 64496, will receive the following
+        AS_PATH: 64510 64500 64499. Therefore, if ISP A' takes no further
+        action, it will cause an unacceptable increase in AS_PATH length
+        within customer's networks directly attached to ISP A'.</t>
+
+        <t>A second feature was designed to resolve this problem (continuing
+        the use of Cisco CLI in the examples, it is called "Replace AS" in the
+        examples below). This feature allows ISP A' to prevent routers
+        configured with this feature from appending the global configured AS
+        in outbound BGP UPDATEs toward its customer's networks configured with
+        the "Local AS" feature. Instead, only the historical (or legacy) AS
+        will be prepended in the outbound BGP UPDATE toward the customer's
+        network, restoring the AS_PATH length to what it what was before AS
+        Migration occurred.</t>
+
+        <t>To re-use the above diagram, but in the opposite direction, we
+        have:</t>
+
+        <figure align="center" anchor="replace_as"
+                title="Replace AS BGP UPDATE Diagram">
+          <artwork align="center"><![CDATA[                ISP A'                    ISP A'
+     CE-A ---> PE-A -------------------> PE-B ---> CE-B
+     64499     New_ASN: 64500   Old_ASN: 64510     64496
+                                New_ASN: 64500            ]]></artwork>
+
+          <postamble>Note: Direction of BGP UPDATE as per the
+          arrows.</postamble>
+        </figure>
+
+        <t/>
+
+        <t>The final configuration on PE-B after completing the "Replace AS"
+        portion of the AS migration is as follows:</t>
+
+        <figure align="left">
+          <artwork align="left"><![CDATA[router bgp 64500
+     neighbor <CE-B_IP> remote-as 64496
+     neighbor <CE-B_IP> local-as 64510 no-prepend replace-as                ]]></artwork>
+        </figure>
+
+        <t>By default, without "Replace AS" enabled, CE-B would see an AS_PATH
+        of: 64510 64500 64499, which is artificially lengthened by the ASN
+        Migration. After ISP A' changes PE-B to include the "Replace AS"
+        feature, CE-B would receive an AS_PATH of: 64510 64499, which is the
+        same AS_PATH length pre-AS migration. NOTE: If there are still routers
+        in the old ASN, it is possible for them to accept these manipulated
+        routes as if they have not already passed through their ASN,
+        potentially causing a loop, since BGP's normal loop-prevention
+        behavior of rejecting routes that include its ASN in the path will not
+        catch these. Careful filtering between routers remaining in the old
+        ASN and routers migrated to the new ASN is necessary to minimize the
+        risk of routing loops.</t>
+      </section>
+
+      <section title="Implementation">
+        <t>While multiple implementations already exist, the following
+        documents the expected behavior such that a new implementation of this
+        feature could be done on other platforms.</t>
+
+        <t>These features MUST be configurable on a per-neighbor or per
+        peer-group basis to allow for maximum flexibility. When this feature
+        set is invoked, an ASN that is different from the globally-configured
+        ASN is provided as a part of the command as exemplified above. To
+        implement this feature, a BGP speaker MUST send <xref
+        target="RFC4271">BGP OPEN</xref> (see section 4.2) messages to the
+        configured eBGP peer using the ASN configured for this session as the
+        value sent in "My Autonomous System". The speaker MUST NOT use the ASN
+        configured globally within the BGP process as the value sent in "My
+        Autonomous System" in the OPEN message. This will avoid the BGP OPEN
+        Error message "Bad Peer AS", and is typically used to re-establish
+        eBGP sessions with peers expecting the legacy ASN after a router has
+        been moved to a new ASN. Additionally, when the BGP speaker configured
+        with this feature receives UPDATEs from its neighbor, it MUST process
+        the UPDATE as normal, but it MUST append the configured ASN in the
+        AS_PATH attribute before advertising the UPDATE to any other BGP
+        speaker. Note that processing the UPDATE as normal will include
+        appending the globally configured ASN to the AS_PATH, thus processing
+        this UPDATE will result in the addition of two ASNs to the AS_PATH
+        attribute. Similarly, for outbound UPDATEs sent by the configured BGP
+        speaker to its neighbor, the speaker MUST append the configured ASN to
+        the AS_PATH attribute, adding to the existing global ASN in the
+        AS_PATH, for a total of two ASNs added to the AS_PATH.</t>
+
+        <t>Two options exist to manipulate the behavior of this feature. They
+        modify the behavior as described below:</t>
+
+        <t>No prepend inbound &ndash; When the BGP speaker configured with
+        this option receives inbound UPDATEs from its neighbor, it MUST NOT
+        append the configured ASN in the AS_PATH attribute when advertising
+        that UPDATE to other peers and instead MUST append only the globally
+        configured ASN.</t>
+
+        <t>No prepend outbound &ndash; When the BGP speaker configured with
+        this option generates outbound BGP UPDATEs to the configured peer, the
+        BGP speaker MUST remove the globally configured ASN from the AS_PATH
+        attribute, and MUST append the locally configured ASN to the AS_PATH
+        attribute before sending outbound BGP UPDATEs to the configured
+        peer.</t>
+
+        <t>While the exact command syntax is an implementation detail beyond
+        the scope of this document, the following consideration may be helpful
+        for implementers: Implementations MAY integrate the behavior of the
+        options described above into a single command that addresses both
+        inbound and outbound updates, but if this is done, implementations
+        MUST provide a method to select its applicability to inbound UPDATEs,
+        outbound UPDATEs, or UPDATEs in both directions. Several existing
+        implementations use separate commands (e.g. local-as no-prepend vs
+        local-as replace-as) for maximum flexibility in controlling the
+        behavior on the session to address the widest range of possible
+        migration scenarios.</t>
+      </section>
+    </section>
+
+    <!-- EOS: ebgp-features -->
+
+    <section anchor="ibgp-features"
+             title="Internal BGP Autonomous System Migration Features">
+      <t>The following section describes features that assist with a gradual
+      and least service impacting migration of Internal BGP sessions from a
+      legacy ASN to the permanently retained ASN. The following feature is
+      very valuable to networks undergoing AS migration, but its use does not
+      cause changes to the AS_PATH attribute.</t>
+
+      <section title="Internal BGP Alias">
+        <t>In this case, all of the routers to be consolidated into a single,
+        permanently retained ASN are under the administrative control of a
+        single entity. Unfortunately, the traditional method of migrating all
+        Internal BGP speakers, particularly within larger networks, is both
+        time consuming and widely service impacting.</t>
+
+        <t>The traditional method to migrate Internal BGP sessions was
+        strictly limited to reconfiguration of the global configuration ASN
+        and, concurrently, changing all iBGP neighbors' remote ASN from the
+        legacy ASN to the new, permanently retained ASN on each router within
+        the legacy AS. These changes can be challenging to swiftly execute in
+        networks with with more than a few dozen internal BGP speakers. There
+        is also the concomitant service interruptions as these changes are
+        made to routers within the network, resulting in a reset of iBGP
+        sessions and subsequent route reconvergence to reestablish optimal
+        routing paths. Operators often cannot make such sweeping changes given
+        the associated risks of a highly visible service interruption; rather,
+        they require a more gradual method to migrate Internal BGP sessions,
+        from one ASN to a second, permanently retained ASN, that is not
+        visibly service-impacting to its customers.</t>
+
+        <t>With the <xref target="JUNIPER">"Internal BGP Alias"</xref>
+        feature, it allows an Internal BGP speaker to form a single iBGP
+        session using either the old, legacy ASN or the new, permanently
+        retained ASN. The benefits of using this feature are several fold.
+        First, it allows for a more gradual and less service-impacting
+        migration away from the legacy ASN to the permanently retained ASN.
+        Second, it (temporarily) permits the coexistence of the legacy and
+        permanently retained ASN within a single network, allowing for uniform
+        BGP path selection among all routers within the consolidated network.
+        </t>
+
+        <t>When the "Internal BGP Alias" feature is enabled, typically just on
+        one side of a iBGP session, it allows that iBGP speaker to establish a
+        single iBGP session with either the legacy ASN or the new, permanently
+        retained ASN, depending on which one it receives in the "My Autonomous
+        System" field of the BGP OPEN message from its iBGP session neighbor.
+        It is important to recognize that enablement of the "Internal BGP
+        Alias" feature preserves the semantics of a regular iBGP session,
+        (using identical ASNs). Thus, the BGP attributes transmitted by and
+        the acceptable methods of operation on BGP attributes received from
+        iBGP sessions configured with "Internal BGP Alias" are no different
+        than those exchanged across an iBGP session without "Internal BGP
+        Alias" configured, as defined by <xref target="RFC4271"/> and <xref
+        target="RFC4456"/>.</t>
+
+        <t>Typically, in medium to large networks, <xref target="RFC4456">BGP
+        Route Reflectors</xref> (RRs) are used to aid in reduction of
+        configuration of iBGP sessions and scalability with respect to overall
+        TCP (and, BGP) session maintenance between adjacent iBGP speakers.
+        Furthermore, BGP Route Reflectors are typically deployed in pairs
+        within a single Route Reflection cluster to ensure high reliability of
+        the BGP Control Plane. As such, the following example will use Route
+        Reflectors to aid in understanding the use of the "Internal BGP Alias"
+        feature. Note that Route Reflectors are not a prerequisite to enable
+        "Internal BGP Alias" and this feature can be enabled independent of
+        the use of Route Reflectors.</t>
+
+        <t>The general order of operations is as follows:</t>
+
+        <t><list style="numbers">
+            <t>Within the legacy network, (the routers comprising the set of
+            devices that still have a globally configured legacy ASN), one
+            member of a redundant pair of RRs has its global configuration ASN
+            changed to the permanently retained ASN. Concurrently, "Internal
+            BGP Alias" is configured on all iBGP sessions. This will comprise
+            Non-Client iBGP sessions to other RRs as well as Client iBGP
+            sessions, typically to PE devices, both still utilizing the legacy
+            ASN. Note that during this step there will be a reset and
+            reconvergence event on all iBGP sessions on the RRs whose
+            configuration was modified; however, this should not be service
+            impacting due to the use of redundant RRs in each RR Cluster.</t>
+
+            <t>The above step is repeated for the other side of the redundant
+            pair of RRs. The one alteration to the above procedure is that
+            "Internal BGP Alias" is now removed from the Non-Client iBGP
+            sessions toward the other (previously reconfigured) RRs, since it
+            is no longer needed. "Internal BGP Alias" is still required on all
+            RRs for all RR Client iBGP sessions. Also during this step, there
+            will be a reset and reconvergence event on all iBGP sessions whose
+            configuration was modified, but this should not be service
+            impacting. At the conclusion of this step, all RRs should now have
+            their globally configured ASN set to the permanently retained ASN
+            and "Internal BGP Alias" enabled and in use toward RR Clients.</t>
+
+            <t>At this point, the network administrators would then be able to
+            establish iBGP sessions between all Route Reflectors in both the
+            legacy and permanently retained networks. This would allow the
+            network to appear to function, both internally and externally, as
+            a single, consolidated network using the permanently retained
+            network.</t>
+
+            <t>To complete the AS migration, each RR Client (PE) in the legacy
+            network still utilizing the legacy ASN is now modified.
+            Specifically, each legacy PE would have its globally configured
+            ASN changed to use the permanently retained ASN. The ASN used by
+            the PE for the iBGP sessions toward each RR would be changed to
+            use the permanently retained ASN. (It is unnecessary to enable
+            "Internal BGP Alias" on the migrated iBGP sessions). During the
+            same maintenance window, External BGP sessions would be modified
+            to include the above "Local AS No Prepend" and "Replace-AS"
+            features described in Section 3 above, since all of the changes
+            are service interrupting to the eBGP sessions of the PE. At this
+            point, all PEs will have been migrated to the permanently retained
+            ASN.</t>
+
+            <t>The final step is to excise the "Internal BGP Alias"
+            configuration from the first half of the legacy RR Client pair --
+            this will expunge "Internal BGP Alias" configuration from all
+            devices in the network. After this is complete, all routers in the
+            network will be using the new, permanently retained ASN for all
+            iBGP sessions with no vestiges of the legacy ASN on any iBGP
+            sessions.</t>
+          </list></t>
+
+        <t>The benefit of using "Internal BGP Alias" is that it is a more
+        gradual and less externally service-impacting change to accomplish an
+        AS migration. Previously, without "Internal BGP Alias", such an AS
+        migration change would carry a high risk and need to be successfully
+        accomplished in a very short timeframe (e.g.: at most several hours).
+        In addition, it would likely cause substantial routing churn and rapid
+        fluctuations in traffic carried -- potentially causing periods of
+        congestion and resultant packet loss -- during the period the
+        configuration changes are underway to complete the AS Migration. On
+        the other hand, with "Internal BGP Alias", the migration from the
+        legacy ASN to the permanently retained ASN can occur over a period of
+        days or weeks with reduced customer disruption. (The only observable
+        service disruption should be when each PE undergoes the changes
+        discussed in step 4 above.)</t>
+      </section>
+
+      <section title="Implementation">
+        <t>When configured with this feature, a BGP speaker MUST accept BGP
+        OPEN and establish an iBGP session from configured iBGP peers if the
+        ASN value in "My Autonomous System" is either the globally configured
+        ASN or the locally configured ASN provided in this command.
+        Additionally, a BGP speaker configured with this feature MUST send its
+        own <xref target="RFC4271">BGP OPEN</xref> (see section 4.2) using
+        both the globally configured and the locally configured ASN in "My
+        Autonomous System". To avoid potential deadlocks when two BGP speakers
+        are attempting to establish a BGP peering session and are both
+        configured with this feature, the speaker SHOULD send BGP OPEN using
+        the globally configured ASN first, and only send a BGP OPEN using the
+        locally configured ASN as a fallback if the remote neighbor responds
+        with the BGP error "Bad Peer AS". In each case, the BGP speaker MUST
+        treat UPDATEs sent and received to this peer as if this was a natively
+        configured iBGP session, as defined by <xref target="RFC4271"/> and
+        <xref target="RFC4456"/>.</t>
+
+        <t>Implementations of this feature MAY integrate the functionality
+        from the <xref target="ebgp-features">eBGP features</xref> section as
+        a part of this command in order to simplify support for eBGP
+        migrations as well as iBGP migrations, such that an eBGP session to a
+        configured neighbor could be established via either the global ASN or
+        the locally configured ASN. If the eBGP session is established with
+        the global ASN, no modifications to AS_PATH are required, but if the
+        eBGP session is established with the locally configured ASN, the
+        modifications discussed in <xref target="ebgp-features">eBGP features
+        </xref> MUST be implemented to properly manipulate the AS_PATH.</t>
+      </section>
+    </section>
+
+    <!-- EOS: ibgp-features -->
+
+    <section title="Additional Operational Considerations">
+      <t>This document describes several features to support ISPs and other
+      organizations that need to perform ASN migrations. Other variations of
+      these features may exist, for example, in legacy router software that
+      has not been upgraded or reached End of Life, but continues to operate
+      in the network. Such variations are beyond the scope of this
+      document.</t>
+
+      <t>Companies routinely go through periods of mergers, acquisitions and
+      divestitures, which in the case of the former cause them to accumulate
+      several legacy ASNs over time. ISPs often do not have control over the
+      configuration of customers' devices (i.e.: the ISPs are often not
+      providing a managed CE router service, particularly to medium and large
+      customers that require eBGP). Furthermore, ISPs are using methods to
+      perform ASN migration that do not require coordination with customers.
+      Ultimately, this means there is not a finite period of time after which
+      legacy ASNs will be completely expunged from the ISP's network. In fact,
+      it is common that legacy ASNs and the associated External BGP AS
+      Migration features discussed in this document can and do persist for
+      several years, if not longer. Thus, it is prudent to plan that legacy
+      ASNs and associated External BGP AS Migration features will persist in a
+      operational network indefinitely.</t>
+
+      <t>With respect to the Internal BGP AS Migration Features, all of the
+      routers to be consolidated into a single, permanently retained ASN are
+      under the administrative control of a single entity. Thus, completing
+      the migration from iBGP sessions using the legacy ASN to the permanently
+      retained ASN is more straightforward and could be accomplished in a
+      matter of days to months. Finally, good operational hygiene would
+      dictate that it is good practice to avoid using "Internal BGP Alias"
+      over a long period of time for reasons of not only operational
+      simplicity of the network, but also reduced reliance on that feature
+      during the ongoing lifecycle management of software, features and
+      configurations that are maintained on the network.</t>
+    </section>
+
+    <!-- This PI places the pagebreak correctly (before the section title) in the text output. -->
+
+    <?rfc needLines="8" ?>
+
+    <section anchor="Acknowledgements" title="Acknowledgements">
+      <t>Thanks to Kotikalapudi Sriram, Stephane Litkowski, Terry Manderson,
+      David Farmer, Jaroslaw Adam Gralak, Gunter Van de Velde, Juan Alcaide,
+      Jon Mitchell, Thomas Morin, Alia Atlas, and Alvaro Retana for their
+      comments.</t>
+    </section>
+
+    <!-- Possibly a 'Contributors' section ... -->
+
+    <section anchor="IANA" title="IANA Considerations">
+      <t>This memo includes no request to IANA.</t>
+    </section>
+
+    <section anchor="Security" title="Security Considerations">
+      <t>This draft discusses a process by which one ASN is migrated into and
+      subsumed by another. This involves manipulating the AS_PATH Attribute
+      with the intent of not increasing the AS_PATH length, which would
+      typically cause the BGP route to no longer be selected by BGP's Path
+      Selection Algorithm in others' networks. This could result in sudden and
+      unexpected shifts in traffic patterns in the network, potentially
+      resulting in congestion.</t>
+
+      <t>Given that these features can only be enabled through configuration
+      of routers within a single network, standard security measures should be
+      taken to restrict access to the management interface(s) of routers that
+      implement these features. Additionally, BGP sessions SHOULD be protected
+      using <xref target="RFC5925">TCP Authentication Option</xref> and the
+      <xref target="RFC5082">Generalized TTL Security Mechanism</xref></t>
+    </section>
+
+    <section title="Appendix: Implementation report">
+      <t>As noted elsewhere in this document, this set of migration features
+      has multiple existing implementations in wide use.</t>
+
+      <t><list style="symbols">
+          <t><xref target="CISCO">Cisco</xref></t>
+
+          <t><xref target="JUNIPER">Juniper</xref></t>
+
+          <t><xref target="ALU">Alcatel-Lucent</xref></t>
+        </list>This is not intended to be an exhaustive list, as equivalent
+      features do exist in other implementations, however the authors were
+      unable to find publicly available documentation of the vendor-specific
+      implementation to reference.</t>
+    </section>
+  </middle>
+
+  <!--  *****BACK MATTER ***** -->
+
+  <back>
+    <!-- References split into informative and normative -->
+
+    <!-- There are 2 ways to insert reference entries from the citation libraries:
+     1. define an ENTITY at the top, and use "ampersand character"RFC2629; here (as shown)
+     2. simply use a PI "less than character"?rfc include="reference.RFC.2119.xml"?> here
+        (for I-Ds: include="reference.I-D.narten-iana-considerations-rfc2434bis.xml")
+
+     Both are cited textually in the same manner: by using xref elements.
+     If you use the PI option, xml2rfc will, by default, try to find included files in the same
+     directory as the including file. You can also define the XML_LIBRARY environment variable
+     with a value containing a set of directories to search.  These can be either in the local
+     filing system or remote ones accessed by http (http://domain/dir/... ).-->
+
+    <references title="Normative References">
+      <!--?rfc include="http://xml.resource.org/public/rfc/bibxml/reference.RFC.2119.xml"?-->
+
+      &RFC2119;
+
+      &RFC4271;
+    </references>
+
+    <references title="Informative References">
+      <!-- Here we use entities that we defined at the beginning. -->
+
+      &RFC4456;
+
+      &RFC5065;
+
+      &RFC5082;
+
+      &RFC5398;
+
+      &RFC5925;
+
+      &RFC6996;
+
+      <!-- A reference written by by an organization not a person. -->
+
+      <reference anchor="CISCO"
+                 target="http://www.cisco.com/c/en/us/td/docs/ios-xml/ios/iproute_bgp/configuration/xe-3s/asr1000/irg-xe-3s-asr1000-book/irg-dual-as.html">
+        <front>
+          <title>BGP Support for Dual AS Configuration for Network AS
+          Migrations</title>
+
+          <author>
+            <organization>Cisco Systems, Inc.</organization>
+          </author>
+
+          <date year="2003"/>
+        </front>
+      </reference>
+
+      <reference anchor="JUNIPER"
+                 target="http://www.juniper.net/techpubs/en_US/junos13.3/topics/concept/bgp-local-as-introduction.html">
+        <front>
+          <title>Configuring the BGP Local Autonomous System Attribute</title>
+
+          <author>
+            <organization>Juniper Networks, Inc.</organization>
+          </author>
+
+          <date year="2012"/>
+        </front>
+      </reference>
+
+      <reference anchor="ALU"
+                 target="https://infoproducts.alcatel-lucent.com/html/0_add-h-f/93-0074-10-01/7750_SR_OS_Routing_Protocols_Guide/BGP-CLI.html#709567">
+        <front>
+          <title>BGP Local AS attribute</title>
+
+          <author>
+            <organization>Alcatel-Lucent</organization>
+          </author>
+
+          <date year="2006-2012"/>
+        </front>
+      </reference>
+    </references>
+
+    <!-- Change Log
+
+v00 2006-03-15  EBD   Initial version
+
+v01 2006-04-03  EBD   Moved PI location back to position 1 -
+                      v3.1 of XMLmind is better with them at this location.
+v02 2007-03-07  AH    removed extraneous nested_list attribute,
+                      other minor corrections
+v03 2007-03-09  EBD   Added comments on null IANA sections and fixed heading capitalization.
+                      Modified comments around figure to reflect non-implementation of
+                      figure indent control.  Put in reference using anchor="DOMINATION".
+                      Fixed up the date specification comments to reflect current truth.
+v04 2007-03-09 AH     Major changes: shortened discussion of PIs,
+                      added discussion of rfc include.
+v05 2007-03-10 EBD    Added preamble to C program example to tell about ABNF and alternative 
+                      images. Removed meta-characters from comments (causes problems).  -->
+  </back>
+</rfc>
