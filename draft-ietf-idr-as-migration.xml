@@ -287,44 +287,42 @@
 
       <t>In this use case, neither ISP is using BGP Confederations <xref
       target="RFC5065">RFC 5065</xref> internally.</t>
-
-      <t>There are multiple implementations with equivalent features deployed
-      and in use. Some documentation pointers to these implementations, as
-      well as additional documentation on migration scenarios can be found in
-      the appendix. The examples cited below use Cisco IOS CLI for ease of
-      illustration purposes only.</t>
     </section>
 
     <section anchor="ebgp-features"
-             title="External BGP Autonomous System Migration Features">
-      <t>The following section addresses features that are specific to
+             title="External BGP Autonomous System Migration Mechanisms">
+      <t>The following section addresses optional capabilities that are specific to
       modifying the AS_PATH attribute at the Autonomous System Border Routers
       (ASBRs) of an organization, (typically a single Service Provider). This
       ensures that external BGP customers/peers are not forced to make any
       configuration changes on their CE routers before or during the exact
       time the Service Provider wishes to migrate to a new, permanently
-      retained ASN. Furthermore, these features eliminate the artificial
+      retained ASN. Furthermore, these mechanisms eliminate the artificial
       lengthening of the AS_PATH both transmitted from and received by the
       Service Provider that is undergoing AS Migration, which would have
       negative implications on path selection by external networks.</t>
 
       <section title="Modify Inbound BGP AS_PATH Attribute">
-        <t>The first feature used in the process described above is called
-        "Local AS". This feature allows the PE router that was formerly in ISP
-        B to re-establish an eBGP session toward the existing CE devices using
+        <t>The first instrument used in the process described above is called
+        "Local AS". This allows a local router to accept a BGP OPEN
+        message from an eBGP peer that contains a Your_ASN (???) value of either
+        the globally defined ASN, typically of the router's BGP process, or a locally
+        defined AS value.  This mechanism allows the PE router that was formerly in ISP
+        B to establish an eBGP session toward the existing CE devices using
         the legacy AS, AS 64510. Ultimately, the CE devices (i.e.: customer C)
         are completely unaware that ISP B has reconfigured its router to
         participate as a member of a new AS. Within the context of the former
-        ISP B PE router, the second effect this feature has on AS_PATH is
+        ISP B PE router, the second effect this specific mechanism has on AS_PATH is
         that, by default, it prepends all received BGP UPDATEs with the legacy
         AS of ISP B: AS 64510, while advertising it (Adj-RIB-Out) to other BGP
         speakers (A'). Within Loc-RIB on ISP B prior to the migration, the
         AS_PATH toward customer C would appear as: 64510, whereas the same RIB
         on ISP A' (ISP B routers post-migration) would contain AS_PATH: 64510
-        64496. To avoid changes to the AS_PATH length, a secondary feature "No
-        Prepend" is added to the "Local AS" configuration toward every eBGP
-        neighbor on PE routers migrating from ISP B. The "No Prepend" feature
-        causes those routers to not prepend the legacy AS, AS 64510, when
+        64496.</t>
+        
+        <t>A second instrument, referred to as "No Prepend Inbound", is enabled on PE routers
+        migrating from ISP B. The "No Prepend Inbound"
+        capability causes ISP B's routers to not prepend the legacy AS, AS 64510, when
         advertising UPDATES received from customer C. This restores the
         AS_PATH within ISP A' toward customer C so that it is just one ASN in
         length: 64496.</t>
@@ -332,24 +330,29 @@
         <t>In the direction of CE -&gt; PE (inbound):</t>
 
         <t><list style="numbers">
-            <t>'local-as &lt;old_ASN&gt;': prepends the &lt;old_ASN&gt; value
-            to the AS_PATH when advertising routes received from the CE</t>
+            <t>"Local AS": Allows the local BGP router to successfully receive and
+            process a BGP OPEN from an eBGP neighbor with either the new, globally
+            defined ASN or the old, legacy ASN value of the local router.  When this
+            capability is activated, it causes the local router to prepend the
+            &lt;old_ASN&gt; value to the AS_PATH when advertising routes received
+            from a CE to iBGP neighbors inside the Autonomous System.</t>
 
-            <t>'local-as &lt;old_ASN&gt; no-prepend': does not prepend
-            &lt;old_ASN&gt; value to the AS_PATH when advertising routes
-            received from the CE</t>
+            <t>"No Prepend Inbound (of Local AS)": the local BGP router does not prepend
+            &lt;old_ASN&gt; value to the AS_PATH when advertising routes received
+            from the CE to iBGP neighbors inside the Autonomous System</t>
           </list></t>
 
-        <t>PE-B is a PE that was originally in ISP B, and has a customer peer
-        CE-B. PE-B has had its global configuration ASN changed from AS 64510
+        <t>PE-B is a PE that was originally in ISP B, and has a customer eBGP session
+        to CE-B. PE-B has had its global configuration ASN changed from AS 64510
         to AS 64500 to make it part of the permanently retained ASN. This now
         makes PE-B a member of ISP A'. PE-A is a PE that was originally in ISP
         A, and has a customer peer CE-A. Although its global configuration ASN
         remains AS 64500, throughout this exercise we also consider PE-A a
         member of ISP A'.</t>
 
+	    <t>
         <figure align="center" anchor="local_as"
-                title="Local AS BGP UPDATE Diagram">
+                title="Local AS and No Prepend BGP UPDATE Diagram">
           <artwork align="center"><![CDATA[           ISP A'                    ISP A'
      CE-A <--- PE-A <------------------- PE-B <--- CE-B
      64499     New_ASN: 64500   Old_ASN: 64510     64496
@@ -358,51 +361,40 @@
           <postamble>Note: Direction of BGP UPDATE as per the
           arrows.</postamble>
         </figure>
-
         <t/>
 
-        <t>The final configuration on PE-B after completing the "Local AS"
-        portion of the AS migration is as follows:</t>
-
-        <figure align="left">
-          <artwork align="left"><![CDATA[router bgp 64500
-     neighbor <CE-B_IP> remote-as 64496
-     neighbor <CE-B_IP> local-as 64510 no-prepend
-]]></artwork>
-        </figure>
-
-        <t>As a result of the "Local AS No Prepend" configuration, on PE-B,
+        <t>As a result using both the "Local AS" and "No Prepend Inbound" capabilities on PE-B,
         CE-A will see an AS_PATH of: 64500 64496. CE-A will not receive a BGP
-        UPDATE containing AS 64510 in the AS_PATH. (If only the "local-as
-        64510" feature was configured without the keyword "no-prepend" on
+        UPDATE containing AS 64510 in the AS_PATH. (If only the "Local AS"
+        mechanism was configured without "No Prepend Inbound" on
         PE-B, then CE-A would see an AS_PATH of: 64496 64510 64500, which
         results in an unacceptable lengthening of the AS_PATH).</t>
       </section>
 
       <section title="Modify Outbound BGP AS_PATH Attribute">
-        <t>The previous feature, "Local AS No Prepend", was designed to modify
-        the AS_PATH Attribute received by the ISP in UPDATEs from CE devices,
-        when CE devices still have an eBGP session established with the ISPs
-        legacy AS, (AS64510). In some existing implementations, "Local AS No
-        Prepend" does not concurrently modify the AS_PATH Attribute for BGP
-        UPDATEs that are transmitted by the ISP to CE devices. Specifically,
-        with "Local AS No Prepend" enabled on PE-B, it automatically causes a
+        <t>The two aforementioned mechanisms, "Local AS" and "No Prepend Inbound",
+        only modify the AS_PATH Attribute received by the ISP's PE's in the course
+        of processing BGP UPDATEs from CE devices, particularly when 
+        CE devices still have an eBGP session established with the ISPs
+        legacy AS, (AS64510).</t>
+        
+        <t>In some existing implementations, "Local AS" and "No
+        Prepend Inbound" does not concurrently modify the AS_PATH Attribute for BGP
+        UPDATEs that are transmitted by the ISP's PE's to CE devices. In these
+        implementations, with "Local AS" and "No Prepend Inbound" used on PE-B, it
+        automatically causes a
         lengthening of the AS_PATH in outbound BGP UPDATEs from ISP A' toward
-        directly attached eBGP speakers, (Customer C in AS 64496). This is the
-        result of the "Local AS No Prepend" feature automatically appending
-        the new global configuration ASN, AS64500, after the legacy ASN,
-        AS64510, in BGP UPDATEs that are transmitted by PE-B to CE-B. The end
-        result is that customer C, in AS 64496, will receive the following
+        directly attached eBGP speakers, (Customer C in AS 64496). The externally
+        observed result is that customer C, in AS 64496, will receive the following
         AS_PATH: 64510 64500 64499. Therefore, if ISP A' takes no further
         action, it will cause an unacceptable increase in AS_PATH length
         within customer's networks directly attached to ISP A'.</t>
 
-        <t>A second feature was designed to resolve this problem (continuing
-        the use of Cisco CLI in the examples, it is called "Replace AS" in the
-        examples below). This feature allows ISP A' to prevent routers
-        configured with this feature from appending the global configured AS
-        in outbound BGP UPDATEs toward its customer's networks configured with
-        the "Local AS" feature. Instead, only the historical (or legacy) AS
+        <t>A tertiary mechanism is used to resolve this problem, referred to as
+        "Replace Old AS".  This capability
+        allows ISP A' to prevent routers from appending the globally configured ASN
+        in outbound BGP UPDATEs toward directly attached eBGP neighbors that are
+        using the "Local AS" mechanism. Instead, only the old (or previously used) AS
         will be prepended in the outbound BGP UPDATE toward the customer's
         network, restoring the AS_PATH length to what it what was before AS
         Migration occurred.</t>
@@ -423,19 +415,11 @@
 
         <t/>
 
-        <t>The final configuration on PE-B after completing the "Replace AS"
-        portion of the AS migration is as follows:</t>
-
-        <figure align="left">
-          <artwork align="left"><![CDATA[router bgp 64500
-     neighbor <CE-B_IP> remote-as 64496
-     neighbor <CE-B_IP> local-as 64510 no-prepend replace-as                ]]></artwork>
-        </figure>
-
-        <t>By default, without "Replace AS" enabled, CE-B would see an AS_PATH
-        of: 64510 64500 64499, which is artificially lengthened by the ASN
-        Migration. After ISP A' changes PE-B to include the "Replace AS"
-        feature, CE-B would receive an AS_PATH of: 64510 64499, which is the
+        <t>By default, without the use of "Replace Old AS", CE-B would see an AS_PATH
+        of: 64510 64500 64499, which is artificially lengthened, typically by use of
+        the "Local AS" and/or "No Prepend" capabilities during the course of the ASN
+        Migration. After ISP A' changes PE-B to use "Replace Old AS", CE-B would
+        receive an AS_PATH of: 64510 64499, which is the
         same AS_PATH length pre-AS migration. NOTE: If there are still routers
         in the old ASN, it is possible for them to accept these manipulated
         routes as if they have not already passed through their ASN,
@@ -451,40 +435,47 @@
         documents the expected behavior such that a new implementation of this
         feature could be done on other platforms.</t>
 
-        <t>These features MUST be configurable on a per-neighbor or per
-        peer-group basis to allow for maximum flexibility. When this feature
-        set is invoked, an ASN that is different from the globally-configured
-        ASN is provided as a part of the command as exemplified above. To
-        implement this feature, a BGP speaker MUST send <xref
-        target="RFC4271">BGP OPEN</xref> (see section 4.2) messages to the
-        configured eBGP peer using the ASN configured for this session as the
-        value sent in "My Autonomous System". The speaker MUST NOT use the ASN
-        configured globally within the BGP process as the value sent in "My
-        Autonomous System" in the OPEN message. This will avoid the BGP OPEN
-        Error message "Bad Peer AS", and is typically used to re-establish
-        eBGP sessions with peers expecting the legacy ASN after a router has
-        been moved to a new ASN. Additionally, when the BGP speaker configured
-        with this feature receives UPDATEs from its neighbor, it MUST process
-        the UPDATE as normal, but it MUST append the configured ASN in the
-        AS_PATH attribute before advertising the UPDATE to any other BGP
-        speaker. Note that processing the UPDATE as normal will include
-        appending the globally configured ASN to the AS_PATH, thus processing
+        <t>If a BGP speaker has not received a BGP OPEN message from a peer, a BGP
+        speaker may transmit a <xref target="RFC4271">BGP OPEN</xref> (see section 4.2)
+        message to the configured eBGP peer and it MUST use the "Local AS" value configured
+        for this session as the value sent in "My Autonomous System" field.</t>
+        
+        <t>If a BGP speaker has received a BGP OPEN message from a peer, it should
+        analyze the value received in the "Your Autonomous System" field.  If the received
+        "Your Autonomous System" value is an identical match of the "Local AS" value
+        configured for this session, then the BGP speaker MUST
+        send a BGP OPEN message to the peer with the "Local AS" value configured
+        for this session in the "My Autonomous System" field.  On the other hand, if
+        the received "Your Autonomous System" value is not a identical match of the
+        "Local AS" value configured for this session and is a identical match of the
+        globally defined ASN for the local router, then the BGP speaker MUST send
+        a BGP OPEN message to the peer with the globally defined ASN value and it
+        MUST NOT modify the advertised or received AS_PATH attribute according to
+        the procedures defined for: "Local AS", "No Prepend" and "Replace Old AS".</t>
+        
+        <t>"Local AS": When a BGP session has this mechanism enabled and a BGP
+        speaker receives UPDATEs from its neighbor, it MUST process
+        the UPDATE according to the following procedure.  When advertising a BGP route to
+        iBGP neighbors, that was originally received from a neighbor with "Local AS" enabled,
+        to iBGP neighbors, the BGP router MUST append the configured "Local AS" value to the AS_PATH
+        attribute.  For
+        outbound UPDATEs sent by the BGP speaker using this capability to its neighbor,
+        the speaker MUST append the globally configured ASN to the AS_PATH attribute
+        and second append the "Local AS" value to the AS_PATH attribute.  Thus,
+        when the "Local AS" mechanism is enabled processing
         this UPDATE will result in the addition of two ASNs to the AS_PATH
-        attribute. Similarly, for outbound UPDATEs sent by the configured BGP
-        speaker to its neighbor, the speaker MUST append the configured ASN to
-        the AS_PATH attribute, adding to the existing global ASN in the
-        AS_PATH, for a total of two ASNs added to the AS_PATH.</t>
+        attribute. </t>
 
         <t>Two options exist to manipulate the behavior of this feature. They
         modify the behavior as described below:</t>
 
-        <t>No prepend inbound &ndash; When the BGP speaker configured with
+        <t>"No prepend" inbound &ndash; When the BGP speaker configured with
         this option receives inbound UPDATEs from its neighbor, it MUST NOT
         append the configured ASN in the AS_PATH attribute when advertising
         that UPDATE to other peers and instead MUST append only the globally
         configured ASN.</t>
 
-        <t>No prepend outbound &ndash; When the BGP speaker configured with
+        <t>"No prepend" outbound &ndash; When the BGP speaker configured with
         this option generates outbound BGP UPDATEs to the configured peer, the
         BGP speaker MUST remove the globally configured ASN from the AS_PATH
         attribute, and MUST append the locally configured ASN to the AS_PATH
