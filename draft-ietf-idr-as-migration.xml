@@ -316,7 +316,7 @@
         effect this specific mechanism has on AS_PATH is that, by default, it
         prepends all received BGP UPDATEs with the legacy AS of ISP B: AS
         64510, while advertising it (Adj-RIB-Out) to other BGP speakers (A').
-        Within Loc-RIB on ISP B prior to the migration, the AS_PATH toward
+        Within the Loc-RIB on ISP B prior to the migration, the AS_PATH toward
         customer C would appear as: 64510, whereas the same RIB on ISP A' (ISP
         B routers post-migration) would contain AS_PATH: 64510 64496.</t>
 
@@ -366,7 +366,7 @@
         capabilities on PE-B, CE-A will see an AS_PATH of: 64500 64496. CE-A
         will not receive a BGP UPDATE containing AS 64510 in the AS_PATH. (If
         only the "Local AS" mechanism was configured without "No Prepend
-        Inbound" on PE-B, then CE-A would see an AS_PATH of: 64496 64510
+        Inbound" on PE-B, then CE-A would have seen an AS_PATH of: 64496 64510
         64500, which results in an unacceptable lengthening of the
         AS_PATH).</t>
       </section>
@@ -434,32 +434,30 @@
         mechanism could be done on other platforms.</t>
 
         <t>These mechanisms MUST be configurable on a per-neighbor or per
-        peer-group basis to allow for maximum flexibility. When this mechanism
-        is invoked, a local ASN that is different from the globally-configured
-        ASN is provided as a part of the command as exemplified above. To
+        peer-group basis to allow for maximum flexibility. When the "Local AS"
+        capability is used, a local ASN must be provided in the configuration
+        that is different from the globally-configured ASN of the BGP router. To
         implement this mechanism, a BGP speaker MUST send <xref
         target="RFC4271">BGP OPEN</xref> (see section 4.2) messages to the
-        configured eBGP peer(s) using the local ASN configured for this
-        session as the value sent in "My Autonomous System". The speaker MUST
-        NOT use the ASN configured globally within the BGP process as the
-        value sent in "My Autonomous System" in the OPEN message. This will
-        avoid the BGP OPEN Error message "Bad Peer AS", and is typically used
-        to re-establish eBGP sessions with peers expecting the legacy ASN
-        after a router has been moved to a new ASN. Additionally, when the BGP
-        speaker configured with this mechanism receives UPDATEs from its
-        neighbor, it MUST process the UPDATE as normal, but it MUST append the
-        configured ASN in the AS_PATH attribute before advertising the UPDATE
-        to any other BGP speaker. Note that processing the UPDATE as normal
-        will include appending the globally configured ASN to the AS_PATH,
-        thus processing this UPDATE will result in the addition of two ASNs to
-        the AS_PATH attribute. Similarly, for outbound UPDATEs sent by the
-        configured BGP speaker to its neighbor, the speaker MUST append the
-        configured ASN to the AS_PATH attribute, adding to the existing global
-        ASN in the AS_PATH, for a total of two ASNs added to the AS_PATH.</t>
+        configured eBGP peer(s) using the local ASN configured for this session
+        as the value sent in "My Autonomous System". The BGP router MUST NOT use
+        the ASN configured globally within the BGP process as the value sent in
+        "My Autonomous System" in the OPEN message. This will avoid causing the
+        eBGP neighbor to unnecessarily generate a BGP OPEN Error message "Bad
+        Peer AS". This method is typically used to re-establish eBGP sessions
+        with peers expecting the legacy ASN after a router has been moved to a
+        new ASN. Additionally, when the BGP router configured with this
+        mechanism receives UPDATEs from its eBGP neighbor, it MUST process the
+        UPDATE as normal, and in doing so it MUST append the configured "Local
+        AS" ASN in the AS_PATH attribute before advertising the UPDATE to an
+        iBGP router. Note that processing the UPDATE before sending to an eBGP
+        neighbor, with "Local AS" configured, the BGP router MUST first append
+        the globally configured ASN to the AS_PATH immediately followed by the
+        "Local AS" value.</t>
 
         <t>Implementations MAY support a more flexible model where the eBGP
-        speaker attempts to open the session using either the locally
-        configured AS or the globally configured AS as discussed in <xref
+        speaker attempts to open the BGP session using either the ASN
+        configured as "Local AS" or the globally configured AS as discussed in <xref
         target="Alias">BGP Alias</xref>. If the session is successfully
         established to the globally configured ASN, then the modifications to
         AS_PATH described in this document SHOULD NOT be performed, as they
@@ -470,30 +468,17 @@
         <t>Two options exist to manipulate the behavior of the basic "Local
         AS" mechanism. They modify the behavior as described below:</t>
 
-        <t>"No prepend" inbound &ndash; When the BGP speaker configured with
-        this option receives inbound UPDATEs from its neighbor, it MUST NOT
-        append the locally configured ASN in the AS_PATH attribute when
-        advertising that UPDATE to other peers and instead MUST append only
-        the globally configured ASN.</t>
+        <t>"No Prepend Inbound" &ndash; When the BGP router configured with this
+        option receives inbound BGP UPDATEs from its eBGP neighbor, it MUST NOT
+        append the "Local AS" ASN value in the AS_PATH attribute when
+        advertising that UPDATE to iBGP neighbors.</t>
 
-        <t>"No prepend" outbound &ndash; When the BGP speaker configured with
-        this option generates outbound BGP UPDATEs to the configured peer, the
-        BGP speaker MUST remove the globally configured ASN from the AS_PATH
-        attribute, and MUST append the locally configured ASN to the AS_PATH
-        attribute before sending outbound BGP UPDATEs to the configured
-        peer.</t>
-
-        <t>While the exact command syntax is an implementation detail beyond
-        the scope of this document, the following consideration may be helpful
-        for implementers: Implementations MAY integrate the behavior of the
-        options described above into a single command that addresses both
-        inbound and outbound updates, but if this is done, implementations
-        MUST provide a method to select its applicability to inbound UPDATEs,
-        outbound UPDATEs, or UPDATEs in both directions. Several existing
-        implementations use separate commands (e.g. local-as no-prepend vs
-        local-as replace-as) for maximum flexibility in controlling the
-        behavior on the session to address the widest range of possible
-        migration scenarios.</t>
+        <t>"Replace Old AS", (outbound) &ndash; When the BGP router configured
+        with this option generates outbound BGP UPDATEs toward an eBGP neighbor,
+        the BGP speaker MUST NOT (first) append the globally configured ASN from
+        the AS_PATH attribute.  The BGP router MUST append only the configured
+        "Local AS" ASN value to the AS_PATH attribute before sending the
+        BGP UPDATEs outbound to the eBGP neighbor.</t>
       </section>
     </section>
 
@@ -519,7 +504,7 @@
         and, concurrently, changing all iBGP neighbors' remote ASN from the
         legacy ASN to the new, permanently retained ASN on each router within
         the legacy AS. These changes can be challenging to swiftly execute in
-        networks with with more than a few dozen internal BGP speakers. There
+        networks with with more than a few dozen internal BGP routers. There
         is also the concomitant service interruptions as these changes are
         made to routers within the network, resulting in a reset of iBGP
         sessions and subsequent route reconvergence to reestablish optimal
@@ -529,42 +514,40 @@
         from one ASN to a second, permanently retained ASN, that is not
         visibly service-impacting to its customers.</t>
 
-        <t>With the <xref target="JUNIPER">"Internal BGP Alias"</xref>
-        mechanism, it allows an Internal BGP speaker to form a single iBGP
-        session using either the old, legacy ASN or the new, permanently
-        retained ASN. The benefits of using this mechanism are several fold.
-        First, it allows for a more gradual and less service-impacting
-        migration away from the legacy ASN to the permanently retained ASN.
-        Second, it (temporarily) permits the coexistence of the legacy and
-        permanently retained ASN within a single network, allowing for uniform
-        BGP path selection among all routers within the consolidated
-        network.</t>
+        <t>With the "Internal BGP AS Migration" mechanism described herein, it
+        allows an Internal BGP speaker to form a single iBGP session using
+        either the old, legacy ASN or the new, permanently retained ASN. The
+        benefits of using this mechanism are several fold. First, it allows for
+        a more gradual and less service-impacting migration away from the legacy
+        ASN to the permanently retained ASN. Second, it (temporarily) permits
+        the coexistence of the legacy and permanently retained ASN within a
+        single network, allowing for uniform BGP path selection among all
+        routers within the consolidated network.</t>
 
-        <t>When the "Internal BGP Alias" mechanism is used, typically just on
-        one side of a iBGP session, it allows that iBGP speaker to establish a
-        single iBGP session with either the legacy ASN or the new, permanently
-        retained ASN, depending on which one it receives in the "My Autonomous
-        System" field of the BGP OPEN message from its iBGP session neighbor.
-        It is important to recognize that enablement of the "Internal BGP
-        Alias" mechanism preserves the semantics of a regular iBGP session,
-        (using identical ASNs). Thus, the BGP attributes transmitted by and
-        the acceptable methods of operation on BGP attributes received from
-        iBGP sessions configured with "Internal BGP Alias" are no different
-        than those exchanged across an iBGP session without "Internal BGP
-        Alias" configured, as defined by <xref target="RFC4271"/> and <xref
-        target="RFC4456"/>.</t>
+        <t>The iBGP router with the "Internal BGP AS Migration" capability
+        enabled allows the receipt of a BGP OPEN message with either the legacy
+        ASN value or the new, globally configured ASN value in the "My
+        Autonomous System" field of the BGP OPEN message from iBGP neighbors. It
+        is important to recognize that enablement of the "Internal BGP AS
+        Migration" mechanism preserves the semantics of a regular iBGP session,
+        (using identical ASNs). Thus, the BGP attributes transmitted by and the
+        acceptable methods of operation on BGP attributes received from iBGP
+        sessions configured with "Internal BGP AS Migration" capability are no
+        different than those exchanged across an iBGP session without "Internal
+        BGP AS Migration" configured, as defined by <xref target="RFC4271"/> and
+        <xref target="RFC4456"/>.</t>
 
         <t>Typically, in medium to large networks, <xref target="RFC4456">BGP
         Route Reflectors</xref> (RRs) are used to aid in reduction of
         configuration of iBGP sessions and scalability with respect to overall
-        TCP (and, BGP) session maintenance between adjacent iBGP speakers.
-        Furthermore, BGP Route Reflectors are typically deployed in pairs
-        within a single Route Reflection cluster to ensure high reliability of
-        the BGP Control Plane. As such, the following example will use Route
-        Reflectors to aid in understanding the use of the "Internal BGP Alias"
+        TCP (and, BGP) session maintenance between adjacent iBGP routers.
+        Furthermore, BGP Route Reflectors are typically deployed in pairs within
+        a single Route Reflection cluster to ensure high reliability of the BGP
+        Control Plane. As such, the following example will use Route Reflectors
+        to aid in understanding the use of the "Internal BGP AS Migration"
         mechanism. Note that Route Reflectors are not a prerequisite to enable
-        "Internal BGP Alias" and this mechanism can be enabled independent of
-        the use of Route Reflectors.</t>
+        "Internal BGP AS Migration" and this mechanism can be enabled
+        independent of the use of Route Reflectors.</t>
 
         <t>The general order of operations is as follows:</t>
 
@@ -572,26 +555,27 @@
             <t>Within the legacy network, (the routers comprising the set of
             devices that still have a globally configured legacy ASN), one
             member of a redundant pair of RRs has its global configuration ASN
-            changed to the permanently retained ASN. Concurrently, "Internal
-            BGP Alias" is configured on all iBGP sessions. This will comprise
-            Non-Client iBGP sessions to other RRs as well as Client iBGP
-            sessions, typically to PE devices, both still utilizing the legacy
-            ASN. Note that during this step there will be a reset and
-            reconvergence event on all iBGP sessions on the RRs whose
+            changed to the permanently retained ASN. Concurrently, the "Internal
+            BGP AS Migration" capability is enabled on all iBGP sessions on that
+            device. This will comprise Non-Client iBGP sessions to other RRs as
+            well as Client iBGP sessions, typically to PE devices, both still
+            utilizing the legacy ASN. Note that during this step there will be a
+            reset and reconvergence event on all iBGP sessions on the RRs whose
             configuration was modified; however, this should not be service
             impacting due to the use of redundant RRs in each RR Cluster.</t>
 
             <t>The above step is repeated for the other side of the redundant
-            pair of RRs. The one alteration to the above procedure is that
-            "Internal BGP Alias" is now removed from the Non-Client iBGP
-            sessions toward the other (previously reconfigured) RRs, since it
-            is no longer needed. "Internal BGP Alias" is still required on all
-            RRs for all RR Client iBGP sessions. Also during this step, there
-            will be a reset and reconvergence event on all iBGP sessions whose
-            configuration was modified, but this should not be service
-            impacting. At the conclusion of this step, all RRs should now have
-            their globally configured ASN set to the permanently retained ASN
-            and "Internal BGP Alias" enabled and in use toward RR Clients.</t>
+            pair of RRs. The one alteration to the above procedure is that the
+            "Internal BGP AS Migration" mechanism is now removed from the
+            Non-Client iBGP sessions toward the other (previously reconfigured)
+            RRs, since it is no longer needed. The "Internal BGP AS Migration"
+            mechanism is still required on all RRs for all RR Client iBGP
+            sessions. Also during this step, there will be a reset and
+            reconvergence event on all iBGP sessions whose configuration was
+            modified, but this should not be service impacting. At the
+            conclusion of this step, all RRs should now have their globally
+            configured ASN set to the permanently retained ASN and "Internal BGP
+            AS Migration" enabled and in use toward RR Clients.</t>
 
             <t>At this point, the network administrators would then be able to
             establish iBGP sessions between all Route Reflectors in both the
@@ -602,49 +586,47 @@
 
             <t>To complete the AS migration, each RR Client (PE) in the legacy
             network still utilizing the legacy ASN is now modified.
-            Specifically, each legacy PE would have its globally configured
-            ASN changed to use the permanently retained ASN. The ASN used by
-            the PE for the iBGP sessions toward each RR would be changed to
-            use the permanently retained ASN. (It is unnecessary to enable
-            "Internal BGP Alias" on the migrated iBGP sessions). During the
-            same maintenance window, External BGP sessions would be modified
-            to include the above "Local AS No Prepend" and "Replace-AS"
-            mechanisms described in Section 3 above, since all of the changes
-            are service interrupting to the eBGP sessions of the PE. At this
-            point, all PEs will have been migrated to the permanently retained
-            ASN.</t>
+            Specifically, each legacy PE would have its globally configured ASN
+            changed to use the permanently retained ASN. The ASN configured
+            within the PE for the iBGP sessions toward each RR would be changed
+            to use the permanently retained ASN. It is unnecessary to enable
+            "Internal BGP AS Migration" mechanism on these migrated iBGP
+            sessions. During the same maintenance window, External BGP sessions
+            would be modified to include the above "Local AS", "No Prepend" and
+            "Replace Old AS" mechanisms described in Section 3 above, since all
+            of the changes are service interrupting to the eBGP sessions of the
+            PE. At this point, all PEs will have been migrated to the
+            permanently retained ASN.</t>
 
-            <t>The final step is to excise the "Internal BGP Alias"
-            configuration from the first half of the legacy RR Client pair --
-            this will expunge "Internal BGP Alias" configuration from all
-            devices in the network. After this is complete, all routers in the
-            network will be using the new, permanently retained ASN for all
-            iBGP sessions with no vestiges of the legacy ASN on any iBGP
-            sessions.</t>
+            <t>The final step is to excise the "Internal BGP AS Migration"
+            configuration from the Router Reflectors in an orderly fashion.
+            After this is complete, all routers in the network will be using the
+            new, permanently retained ASN for all iBGP sessions with no vestiges
+            of the legacy ASN on any iBGP sessions.</t>
           </list></t>
 
-        <t>The benefit of using "Internal BGP Alias" is that it is a more
-        gradual and less externally service-impacting change to accomplish an
-        AS migration. Previously, without "Internal BGP Alias", such an AS
-        migration change would carry a high risk and need to be successfully
-        accomplished in a very short timeframe (e.g.: at most several hours).
-        In addition, it would likely cause substantial routing churn and rapid
-        fluctuations in traffic carried -- potentially causing periods of
-        congestion and resultant packet loss -- during the period the
-        configuration changes are underway to complete the AS Migration. On
-        the other hand, with "Internal BGP Alias", the migration from the
-        legacy ASN to the permanently retained ASN can occur over a period of
-        days or weeks with reduced customer disruption. (The only observable
-        service disruption should be when each PE undergoes the changes
-        discussed in step 4 above.)</t>
+        <t>The benefit of using the aforementioned "Internal BGP AS Migration"
+        capability is that it is a more gradual and less externally
+        service-impacting change to accomplish an AS migration. Previously,
+        without "Internal BGP AS Migration", such an AS migration change would
+        carry a high risk and need to be successfully accomplished in a very
+        short timeframe (e.g.: at most several hours). In addition, it would
+        likely cause substantial routing churn and rapid fluctuations in traffic
+        carried -- potentially causing periods of congestion and resultant
+        packet loss -- during the period the configuration changes are underway
+        to complete the AS Migration. On the other hand, with "Internal BGP AS
+        Migration", the migration from the legacy ASN to the permanently
+        retained ASN can occur over a period of days or weeks with reduced
+        customer disruption. (The only observable service disruption should be
+        when each PE undergoes the changes discussed in step 4 above.)</t>
       </section>
 
       <section anchor="Alias" title="Implementation">
         <t>When configured with this mechanism, a BGP speaker MUST accept BGP
         OPEN and establish an iBGP session from configured iBGP peers if the
         ASN value in "My Autonomous System" is either the globally configured
-        ASN or the locally configured ASN provided in this command.
-        Additionally, a BGP speaker configured with this mechanism MUST send
+        ASN or a locally configured ASN provided when this capability is utilized.
+        Additionally, a BGP router configured with this mechanism MUST send
         its own <xref target="RFC4271">BGP OPEN</xref> (see section 4.2) using
         both the globally configured and the locally configured ASN in "My
         Autonomous System". To avoid potential deadlocks when two BGP speakers
@@ -656,18 +638,6 @@
         treat UPDATEs sent and received to this peer as if this was a natively
         configured iBGP session, as defined by <xref target="RFC4271"/> and
         <xref target="RFC4456"/>.</t>
-
-        <t>Implementations of this mechanism MAY integrate the functionality
-        from the <xref target="ebgp-mechanism">eBGP mechanism</xref> section
-        as a part of this command in order to simplify support for eBGP
-        migrations as well as iBGP migrations, such that an eBGP session to a
-        configured neighbor could be established via either the global ASN or
-        the locally configured ASN. If the eBGP session is established with
-        the global ASN, no modifications to AS_PATH are required, but if the
-        eBGP session is established with the locally configured ASN, the
-        modifications discussed in <xref target="ebgp-mechanism">eBGP
-        mechanism </xref> MUST be implemented to properly manipulate the
-        AS_PATH.</t>
       </section>
     </section>
 
@@ -698,15 +668,15 @@
 
       <t>With respect to the Internal BGP AS Migration mechanism, all of the
       routers to be consolidated into a single, permanently retained ASN are
-      under the administrative control of a single entity. Thus, completing
-      the migration from iBGP sessions using the legacy ASN to the permanently
-      retained ASN is more straightforward and could be accomplished in a
-      matter of days to months. Finally, good operational hygiene would
-      dictate that it is good practice to avoid using "Internal BGP Alias"
-      over a long period of time for reasons of not only operational
-      simplicity of the network, but also reduced reliance on that mechanism
-      during the ongoing lifecycle management of software, features and
-      configurations that are maintained on the network.</t>
+      under the administrative control of a single entity. Thus, completing the
+      migration from iBGP sessions using the legacy ASN to the permanently
+      retained ASN is more straightforward and could be accomplished in a matter
+      of days to months. Finally, good operational hygiene would dictate that it
+      is good practice to avoid using "Internal BGP AS Migration" capability
+      over a long period of time for reasons of not only operational simplicity
+      of the network, but also reduced reliance on that mechanism during the
+      ongoing lifecycle management of software, features and configurations that
+      are maintained on the network.</t>
     </section>
 
     <!-- This PI places the pagebreak correctly (before the section title) in the text output. -->
